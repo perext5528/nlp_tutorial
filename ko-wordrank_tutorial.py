@@ -1,23 +1,7 @@
 # -*- coding:utf-8 -*-
-import pandas as pd
+from krwordrank.hangle import normalize
+from krwordrank.word import KRWordRank, summarize_with_keywords
 from konlpy.tag import Hannanum
-from sklearn.feature_extraction.text import TfidfVectorizer
-
-
-def custom_tagging(docs):
-    doc_noun_list = []
-    for doc in docs:
-        nouns = han.nouns(doc)
-        doc_nouns = ''
-
-        for noun in nouns:
-            doc_nouns += noun + ' '
-
-        doc_noun_list.append(doc_nouns)
-
-    for i in range(0, len(docs)):
-        print('doc' + str(i + 1) + ' : ' + str(doc_noun_list[i]))
-
 
 str_test_corpus = ['세계 최초 5G 스마트폰의 타이틀을 가진 갤럭시S10 모델 중 LTE 모델에 세일 딱지가 붙었다.',
                    '통신요금 정보 포털인 스마트초이스에 따르면 이동통신사 3사는 갤럭시S10 LTE 모델에 대한 출고가를 인하했다.',
@@ -48,7 +32,6 @@ docs2 = ["지난 9월 부산의 한 아파트에서 불이 났습니다."
          "나와 이웃의 안전, 그리고 소중한 반려동물의 생명을 위해 '불조심' 잊지 마세요.",
          ]
 
-
 docs = ["집에는 작은 쥐가 있었습니다",
         "고양이는 쥐를 보았습니다",
         "쥐가 집에서 도망쳤습니다",
@@ -56,9 +39,10 @@ docs = ["집에는 작은 쥐가 있었습니다",
         "쥐 이야기의 끝",
         ]
 
-
-
 han = Hannanum()
+
+# Text Preprocessing
+docs2 = [normalize(text, english=True, number=True) for text in docs2]
 
 doc_noun_list = []
 for doc in docs2:
@@ -70,17 +54,14 @@ for doc in docs2:
 
     doc_noun_list.append(doc_nouns)
 
-for i in range(0, len(docs2)):
-    print('doc' + str(i + 1) + ' : ' + str(doc_noun_list[i]))
-print()
+wordrank_ext = KRWordRank(min_count=7, max_length=10, verbose=True)
+beta = 0.85
+max_iter = 10
 
-tfidf_vectorizer = TfidfVectorizer(use_idf=True)
+keywords, rank, graph = wordrank_ext.extract(doc_noun_list, beta, max_iter)
 
-tfidf_vectorizer_vectors = tfidf_vectorizer.fit_transform(docs2)
+keywordss = summarize_with_keywords(doc_noun_list, min_count=3, max_length=10, beta=0.85, max_iter=10, verbose=True)
 
-first_vector_tfidfvectorizer = tfidf_vectorizer_vectors[0]
+for word, r in sorted(keywordss.items(), key=lambda x: x[1], reverse=True)[:30]:
+    print('%8s:\t%.4f' % (word, r))
 
-df = pd.DataFrame(first_vector_tfidfvectorizer.T.todense(), index=tfidf_vectorizer.get_feature_names(),
-                  columns=["tfidf"])
-
-print(df.sort_values(by=['tfidf'], ascending=False))
